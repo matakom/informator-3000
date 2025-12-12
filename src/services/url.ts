@@ -1,3 +1,3 @@
-const URL = 'https://040184829225.ngrok-free.app'
+const URL = import.meta.env.VITE_URL;
 
 export default URL;

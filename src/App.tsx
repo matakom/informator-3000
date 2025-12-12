@@ -26,8 +26,6 @@ function App() {
   const [isApiConnected, setIsApiConnected] = useState<boolean>(true);
 
   // 1. DETERMINISTIC FETCHING
-  // This replaces the manual useEffect and useState for articles.
-  // It will only fetch once, even if the component renders 10 times.
   const { data: articles = [] } = useQuery({
     queryKey: ['articles'],
     queryFn: async () => {
@@ -38,8 +36,10 @@ function App() {
   });
 
   // 2. SOCKET UPDATES CACHE DIRECTLY
-  const handleSocketMessage = useCallback((data: any) => {
-    if (typeof data === 'object' && data.id) {
+  // Changed 'any' to 'unknown' for type safety
+  const handleSocketMessage = useCallback((data: unknown) => {
+    // Type Guard: Check if data is an object, not null, and has an 'id' property
+    if (typeof data === 'object' && data !== null && 'id' in data) {
       const incomingArticle = data as Article;
       setNotification(incomingArticle);
 
@@ -62,7 +62,7 @@ function App() {
         return current;
       });
     } else {
-      // If we get a generic signal, mark cache as dirty.
+      // If we get a generic signal (or data format we don't recognize), mark cache as dirty.
       // React Query will re-fetch automatically in the background.
       queryClient.invalidateQueries({ queryKey: ['articles'] });
     }
@@ -121,7 +121,6 @@ function App() {
             article={selectedArticle}
             onBack={() => { 
                 setSelectedArticle(null); 
-                // Optional: ensure list is fresh when returning
                 queryClient.invalidateQueries({ queryKey: ['articles'] });
             }}
           />

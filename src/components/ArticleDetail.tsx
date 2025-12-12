@@ -26,7 +26,7 @@ export default function ArticleDetail({ article, onBack }: Props) {
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['articles'] });
             setIsEditModalOpen(false);
-            onBack(); // Go back to list to see updates clearly
+            onBack(); 
         }
     });
 
@@ -54,7 +54,7 @@ export default function ArticleDetail({ article, onBack }: Props) {
                         <button onClick={() => setIsEditModalOpen(true)}>Edit</button>
                         <button 
                             onClick={() => {
-                                if(confirm('Delete this article?')) deleteMutation.mutate(article.id)
+                                if(window.confirm('Delete this article?')) deleteMutation.mutate(article.id)
                             }}
                             style={{ background: 'rgba(239, 68, 68, 0.8)', borderColor: '#ef4444' }}
                         >
@@ -91,9 +91,16 @@ export default function ArticleDetail({ article, onBack }: Props) {
     );
 }
 
-// Sub-component for cleaner code
-function EditModal({ article, onClose, onSave, isLoading }: any) {
-    const [form, setForm] = useState({ ...article });
+// Interface for the sub-component
+interface EditModalProps {
+    article: Article;
+    onClose: () => void;
+    onSave: (data: Article) => void;
+    isLoading: boolean;
+}
+
+function EditModal({ article, onClose, onSave, isLoading }: EditModalProps) {
+    const [form, setForm] = useState<Article>({ ...article });
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
