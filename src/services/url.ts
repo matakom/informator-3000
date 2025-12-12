@@ -1,3 +1,3 @@
-const URL = import.meta.env.VITE_URL;
+const URL = "http://localhost:8080";
 
 export default URL;
