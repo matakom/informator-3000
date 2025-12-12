@@ -33,7 +33,7 @@ function App() {
       setIsApiConnected(true);
       return sortNewestFirst(data);
     },
-    // Optional: Keep data fresh longer to avoid random refetches on window focus
+    // Keep data fresh longer to avoid random refetches on window focus
     staleTime: 1000 * 60 * 5, 
   });
 
@@ -47,12 +47,15 @@ function App() {
     // Note: We intentionally do NOT invalidate queries here to prevent flash
   }, []);
 
-  const handleSocketMessage = useCallback((data: unknown) => {
-    // SCENARIO 1: We got a full Article object (Update Cache)
+  // 3. Socket Logic with Notification Fix
+  const handleSocketMessage = useCallback(async (data: unknown) => {
+    
+    // SCENARIO 1: Backend sends full JSON object (Ideal)
     if (typeof data === 'object' && data !== null && 'id' in data) {
       const incomingArticle = data as Article;
       setNotification(incomingArticle);
       
+      // Update cache immediately
       queryClient.setQueryData(['articles'], (oldData: Article[] | undefined) => {
         const prev = oldData || [];
         const exists = prev.find(a => a.id === incomingArticle.id);
@@ -62,21 +65,37 @@ function App() {
         return sortNewestFirst(newList);
       });
       
-      // Update detail view if user is reading that specific article
-      setSelectedArticle(current => 
-        current && current.id === incomingArticle.id ? incomingArticle : current
-      );
+      setSelectedArticle(current => current && current.id === incomingArticle.id ? incomingArticle : current);
     } 
-    // SCENARIO 2: We got a specific text signal (Refetch)
-    else if (typeof data === 'string' && (data.includes("create") || data.includes("update") || data.includes("delete"))) {
-      queryClient.invalidateQueries({ queryKey: ['articles'] });
+    
+    // SCENARIO 2: Backend sends text signal (create/update/delete)
+    else if (typeof data === 'string') {
+        const signal = data.toLowerCase();
+
+        // If something changed, refresh the main list
+        if (signal.includes("create") || signal.includes("update") || signal.includes("delete")) {
+            queryClient.invalidateQueries({ queryKey: ['articles'] });
+        }
+
+        // ✅ CRITICAL FIX: Manually fetch the newest article for the toast
+        // because the socket signal was just text ("create")
+        if (signal.includes("create")) {
+            try {
+                const latestData = await getArticles();
+                const sorted = sortNewestFirst(latestData);
+                if (sorted.length > 0) {
+                    setNotification(sorted[0]); 
+                }
+            } catch (e) {
+                console.error("Could not fetch details for notification", e);
+            }
+        }
     }
-    // SCENARIO 3: Generic pings/heartbeats -> DO NOTHING (Fixes constant re-render)
   }, [queryClient]);
 
   const isSocketConnected = useSocket(handleSocketMessage);
 
-  // 3. Health Check
+  // 4. Health Check
   useEffect(() => {
     const interval = setInterval(async () => {
       const isAlive = await checkApiHealth();
@@ -94,6 +113,7 @@ function App() {
     <div className="container">
       <NotificationToast message={notification} onClose={() => setNotification(null)} />
 
+      {/* RESPONSIVE HEADER using the new CSS classes */}
       <header className="app-header">
         
         {/* LEFT: Logo */}

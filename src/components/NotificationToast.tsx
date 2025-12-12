@@ -18,7 +18,7 @@ export default function NotificationToast({ message, onClose }: Props) {
 
     return (
         <div className="toast-container">
-            <strong>New Article Published!</strong>
+            <strong>Last Article published</strong>
             <div>{message.title}</div>
             <small>By {message.author}</small>
             <button className="toast-dismiss" onClick={onClose}>Dismiss</button>
