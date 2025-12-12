@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useEffect } from 'react'; // Added useCallback
+import { useState, useMemo, useCallback, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import './App.css';
 import { getArticles, checkApiHealth } from './services/api';
@@ -25,23 +25,34 @@ function App() {
   const [category, setCategory] = useState('');
   const [isApiConnected, setIsApiConnected] = useState<boolean>(true);
 
+  // 1. Fetch Data
   const { data: articles = [] } = useQuery({
     queryKey: ['articles'],
     queryFn: async () => {
       const data = await getArticles();
       setIsApiConnected(true);
       return sortNewestFirst(data);
-    }
+    },
+    // Optional: Keep data fresh longer to avoid random refetches on window focus
+    staleTime: 1000 * 60 * 5, 
   });
 
+  // 2. Stable Handlers
   const handleCardClick = useCallback((article: Article) => {
     setSelectedArticle(article);
   }, []);
 
+  const handleBack = useCallback(() => {
+    setSelectedArticle(null);
+    // Note: We intentionally do NOT invalidate queries here to prevent flash
+  }, []);
+
   const handleSocketMessage = useCallback((data: unknown) => {
+    // SCENARIO 1: We got a full Article object (Update Cache)
     if (typeof data === 'object' && data !== null && 'id' in data) {
       const incomingArticle = data as Article;
       setNotification(incomingArticle);
+      
       queryClient.setQueryData(['articles'], (oldData: Article[] | undefined) => {
         const prev = oldData || [];
         const exists = prev.find(a => a.id === incomingArticle.id);
@@ -50,14 +61,22 @@ function App() {
           : [incomingArticle, ...prev];
         return sortNewestFirst(newList);
       });
-      setSelectedArticle(current => current && current.id === incomingArticle.id ? incomingArticle : current);
-    } else {
+      
+      // Update detail view if user is reading that specific article
+      setSelectedArticle(current => 
+        current && current.id === incomingArticle.id ? incomingArticle : current
+      );
+    } 
+    // SCENARIO 2: We got a specific text signal (Refetch)
+    else if (typeof data === 'string' && (data.includes("create") || data.includes("update") || data.includes("delete"))) {
       queryClient.invalidateQueries({ queryKey: ['articles'] });
     }
+    // SCENARIO 3: Generic pings/heartbeats -> DO NOTHING (Fixes constant re-render)
   }, [queryClient]);
 
   const isSocketConnected = useSocket(handleSocketMessage);
 
+  // 3. Health Check
   useEffect(() => {
     const interval = setInterval(async () => {
       const isAlive = await checkApiHealth();
@@ -71,35 +90,33 @@ function App() {
     return articles.filter(a => a.category === category);
   }, [articles, category]);
 
-  
-
   return (
     <div className="container">
       <NotificationToast message={notification} onClose={() => setNotification(null)} />
 
-      <header style={{
-        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-        paddingBottom: '2rem', marginBottom: '2rem', borderBottom: '1px solid #e2e8f0', position: 'relative'
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', zIndex: 10 }}>
-          <img src="/logo/full.png" alt="logo" height={80} />
+      <header className="app-header">
+        
+        {/* LEFT: Logo */}
+        <div className="header-left">
+          <img src="/logo/full.png" alt="logo" height={60} style={{ display: 'block' }} />
         </div>
-        <div style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', zIndex: 5 }}>
+
+        {/* CENTER: Clock */}
+        <div className="header-center">
           <Clock />
         </div>
-        <div className="status" style={{
-          display: 'flex', flexDirection: 'column', alignItems: 'flex-end', fontSize: '0.8rem',
-          zIndex: 10, background: 'rgba(255,255,255,0.8)', paddingLeft: '10px'
-        }}>
+
+        {/* RIGHT: Status */}
+        <div className="header-right">
           <span>
             REST API: {isApiConnected ? 
-              <span style={{ color: 'green', fontWeight: 'bold' }}>● Online</span> : 
-              <span style={{ color: 'red', fontWeight: 'bold' }}>● Offline</span>}
+              <span style={{ color: '#10b981', fontWeight: 'bold' }}>● Online</span> : 
+              <span style={{ color: '#ef4444', fontWeight: 'bold' }}>● Offline</span>}
           </span>
           <span>
             Real-time: {isSocketConnected ? 
-              <span style={{ color: 'green', fontWeight: 'bold' }}>● Live</span> : 
-              <span style={{ color: 'orange', fontWeight: 'bold' }}>● Reconnecting...</span>}
+              <span style={{ color: '#10b981', fontWeight: 'bold' }}>● Live</span> : 
+              <span style={{ color: '#f59e0b', fontWeight: 'bold' }}>● Connecting...</span>}
           </span>
         </div>
       </header>
@@ -108,10 +125,7 @@ function App() {
         {selectedArticle ? (
           <ArticleDetail
             article={selectedArticle}
-            onBack={() => { 
-                setSelectedArticle(null); 
-                queryClient.invalidateQueries({ queryKey: ['articles'] });
-            }}
+            onBack={handleBack}
           />
         ) : (
           <>
@@ -130,7 +144,7 @@ function App() {
                 <ArticleCard
                   key={art.id}
                   article={art}
-                  onClick={handleCardClick} // Use the stable function here
+                  onClick={handleCardClick}
                 />
               ))}
             </div>

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, memo } from 'react'; // 1. Import memo
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Article } from '../types';
 import { deleteArticle, updateArticle } from '../services/api';
@@ -8,11 +8,11 @@ interface Props {
     onBack: () => void;
 }
 
-export default function ArticleDetail({ article, onBack }: Props) {
+function ArticleDetail({ article, onBack }: Props) { // 2. Change export default to function
     const queryClient = useQueryClient();
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     
-    // --- MUTATIONS ---
+    // ... MUTATIONS ...
     const deleteMutation = useMutation({
         mutationFn: deleteArticle,
         onSuccess: () => {
@@ -30,7 +30,7 @@ export default function ArticleDetail({ article, onBack }: Props) {
         }
     });
 
-    // --- RENDER HELPERS ---
+    // ... RENDER HELPERS ...
     const getCategoryGradient = (cat: string) => {
         const colors: Record<string, string> = {
             'Tech': 'linear-gradient(135deg, #3b82f6 0%, #1e40af 100%)',
@@ -46,6 +46,8 @@ export default function ArticleDetail({ article, onBack }: Props) {
 
     return (
         <div className="article-detail">
+            {/* ... JSX CONTENT SAME AS BEFORE ... */}
+            
             {/* HEADER */}
             <div className="detail-header" style={{ background: getCategoryGradient(article.category) }}>
                 <div className="detail-actions">
@@ -91,7 +93,7 @@ export default function ArticleDetail({ article, onBack }: Props) {
     );
 }
 
-// ✅ 1. Define strict interface for Props
+// ... EditModal sub-component (keep as is) ...
 interface EditModalProps {
     article: Article;
     onClose: () => void;
@@ -99,7 +101,6 @@ interface EditModalProps {
     isLoading: boolean;
 }
 
-// ✅ 2. Use interface instead of 'any'
 function EditModal({ article, onClose, onSave, isLoading }: EditModalProps) {
     const [form, setForm] = useState<Article>({ ...article });
 
@@ -113,55 +114,40 @@ function EditModal({ article, onClose, onSave, isLoading }: EditModalProps) {
             <div className="modal-content">
                 <h2 style={{ marginTop: 0 }}>Edit Article</h2>
                 <form onSubmit={handleSubmit}>
-                    
-                    <label>Headline</label>
-                    <input 
-                        value={form.title} 
-                        onChange={e => setForm({...form, title: e.target.value})} 
-                        placeholder="Title" 
-                        required 
-                    />
+                     {/* ... INPUTS SAME AS BEFORE ... */}
+                     {/* (Just ensuring Types are correct here) */}
+                     <label>Headline</label>
+                     <input value={form.title} onChange={e => setForm({...form, title: e.target.value})} placeholder="Title" required />
+                     
+                     <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:'1rem'}}>
+                        <input value={form.author} onChange={e => setForm({...form, author: e.target.value})} placeholder="Author" required />
+                        <select value={form.category} onChange={e => setForm({...form, category: e.target.value})}>
+                            <option value="Tech">Tech</option>
+                            <option value="Sport">Sport</option>
+                            <option value="Politika">Politika</option>
+                        </select>
+                     </div>
+                     
+                     <textarea value={form.content} onChange={e => setForm({...form, content: e.target.value})} rows={8} required />
 
-                    <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:'1rem'}}>
-                        <div>
-                            <label>Author</label>
-                            <input 
-                                value={form.author} 
-                                onChange={e => setForm({...form, author: e.target.value})} 
-                                placeholder="Author" 
-                                required 
-                            />
-                        </div>
-                        <div>
-                            <label>Category</label>
-                            <select 
-                                value={form.category} 
-                                onChange={e => setForm({...form, category: e.target.value})}
-                            >
-                                <option value="Tech">Tech</option>
-                                <option value="Sport">Sport</option>
-                                <option value="Politika">Politika</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <label>Content</label>
-                    <textarea 
-                        value={form.content} 
-                        onChange={e => setForm({...form, content: e.target.value})} 
-                        placeholder="Content" 
-                        rows={8} 
-                        required 
-                    />
-
-                    <div className="form-actions">
+                     <div className="form-actions">
                         <button type="button" className="secondary" onClick={onClose}>Cancel</button>
-                        <button type="submit" disabled={isLoading}>
-                            {isLoading ? 'Saving...' : 'Save Changes'}
-                        </button>
+                        <button type="submit" disabled={isLoading}>{isLoading ? 'Saving...' : 'Save Changes'}</button>
                     </div>
                 </form>
             </div>
         </div>
     );
 }
+
+// ✅ 3. Export Memoized Component
+function arePropsEqual(prev: Props, next: Props) {
+    return (
+        prev.article.id === next.article.id && 
+        prev.article.updatedAt === next.article.updatedAt &&
+        // IMPORTANT: We trust onBack is stable from App.tsx now
+        prev.onBack === next.onBack
+    );
+}
+
+export default memo(ArticleDetail, arePropsEqual);
