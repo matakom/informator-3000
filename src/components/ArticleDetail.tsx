@@ -91,14 +91,15 @@ export default function ArticleDetail({ article, onBack }: Props) {
     );
 }
 
-// Interface for the sub-component
+// ✅ 1. Define strict interface for Props
 interface EditModalProps {
     article: Article;
     onClose: () => void;
-    onSave: (data: Article) => void;
+    onSave: (data: Partial<Article>) => void;
     isLoading: boolean;
 }
 
+// ✅ 2. Use interface instead of 'any'
 function EditModal({ article, onClose, onSave, isLoading }: EditModalProps) {
     const [form, setForm] = useState<Article>({ ...article });
 
@@ -110,33 +111,49 @@ function EditModal({ article, onClose, onSave, isLoading }: EditModalProps) {
     return (
         <div className="modal-overlay">
             <div className="modal-content">
-                <h2>Edit Article</h2>
+                <h2 style={{ marginTop: 0 }}>Edit Article</h2>
                 <form onSubmit={handleSubmit}>
+                    
+                    <label>Headline</label>
                     <input 
                         value={form.title} 
                         onChange={e => setForm({...form, title: e.target.value})} 
-                        placeholder="Title" required 
+                        placeholder="Title" 
+                        required 
                     />
-                    <div style={{display:'flex', gap:'10px'}}>
-                        <input 
-                            value={form.author} 
-                            onChange={e => setForm({...form, author: e.target.value})} 
-                            placeholder="Author" required 
-                        />
-                        <select 
-                            value={form.category} 
-                            onChange={e => setForm({...form, category: e.target.value})}
-                        >
-                            <option value="Tech">Tech</option>
-                            <option value="Sport">Sport</option>
-                            <option value="Politika">Politika</option>
-                        </select>
+
+                    <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:'1rem'}}>
+                        <div>
+                            <label>Author</label>
+                            <input 
+                                value={form.author} 
+                                onChange={e => setForm({...form, author: e.target.value})} 
+                                placeholder="Author" 
+                                required 
+                            />
+                        </div>
+                        <div>
+                            <label>Category</label>
+                            <select 
+                                value={form.category} 
+                                onChange={e => setForm({...form, category: e.target.value})}
+                            >
+                                <option value="Tech">Tech</option>
+                                <option value="Sport">Sport</option>
+                                <option value="Politika">Politika</option>
+                            </select>
+                        </div>
                     </div>
+
+                    <label>Content</label>
                     <textarea 
                         value={form.content} 
                         onChange={e => setForm({...form, content: e.target.value})} 
-                        placeholder="Content" rows={8} required 
+                        placeholder="Content" 
+                        rows={8} 
+                        required 
                     />
+
                     <div className="form-actions">
                         <button type="button" className="secondary" onClick={onClose}>Cancel</button>
                         <button type="submit" disabled={isLoading}>

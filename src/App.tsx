@@ -34,6 +34,10 @@ function App() {
     }
   });
 
+  const handleCardClick = useCallback((article: Article) => {
+    setSelectedArticle(article);
+  }, []);
+
   const handleSocketMessage = useCallback((data: unknown) => {
     if (typeof data === 'object' && data !== null && 'id' in data) {
       const incomingArticle = data as Article;
@@ -67,11 +71,7 @@ function App() {
     return articles.filter(a => a.category === category);
   }, [articles, category]);
 
-  // --- OPTIMIZATION: Stable Handler ---
-  // If we don't do this, a new function is created every render, breaking memoization
-  const handleCardClick = useCallback((article: Article) => {
-    setSelectedArticle(article);
-  }, []);
+  
 
   return (
     <div className="container">

@@ -1,4 +1,4 @@
-import { memo } from 'react'; // Import memo
+import { memo } from 'react'; 
 import { Article } from '../types';
 
 interface Props {
@@ -7,7 +7,6 @@ interface Props {
 }
 
 function ArticleCard({ article, onClick }: Props) {
-    // ... logic remains the same ...
     const { title, author, category, createdAt, content } = article;
 
     const dateString = new Intl.DateTimeFormat('en-GB', {
@@ -35,4 +34,16 @@ function ArticleCard({ article, onClick }: Props) {
     );
 }
 
-export default memo(ArticleCard);
+// ✅ Custom Comparison Function
+// Returns TRUE if props are equal (DO NOT RENDER)
+// Returns FALSE if props are different (RENDER)
+function arePropsEqual(prevProps: Props, nextProps: Props) {
+    return (
+        prevProps.article.id === nextProps.article.id &&
+        prevProps.article.updatedAt === nextProps.article.updatedAt &&
+        prevProps.article.title === nextProps.article.title &&
+        prevProps.onClick === nextProps.onClick
+    );
+}
+
+export default memo(ArticleCard, arePropsEqual);
