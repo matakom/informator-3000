@@ -7,11 +7,17 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "docker:build": "docker build -t informator-3000-fe .",
+    "docker:run": "docker run -d -p 3000:80 --name informator-app informator-3000-fe",
+    "docker:stop": "docker stop informator-app && docker rm informator-app"
   },
   "dependencies": {
+    "@tanstack/react-query": "^5.90.12",
+    "axios": "^1.13.2",
     "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "react-dom": "^18.3.1",
+    "socket.io-client": "^4.8.1"
   },
   "devDependencies": {
     "@eslint/js": "^9.9.0",
