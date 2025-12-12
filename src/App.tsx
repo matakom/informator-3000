@@ -1,4 +1,4 @@
-import { useState, useMemo, useCallback, useEffect } from 'react';
+import { useState, useMemo, useCallback, useEffect } from 'react'; // Added useCallback
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import './App.css';
 import { getArticles, checkApiHealth } from './services/api';
@@ -25,7 +25,6 @@ function App() {
   const [category, setCategory] = useState('');
   const [isApiConnected, setIsApiConnected] = useState<boolean>(true);
 
-  // 1. DETERMINISTIC FETCHING
   const { data: articles = [] } = useQuery({
     queryKey: ['articles'],
     queryFn: async () => {
@@ -35,42 +34,26 @@ function App() {
     }
   });
 
-  // 2. SOCKET UPDATES CACHE DIRECTLY
-  // Changed 'any' to 'unknown' for type safety
   const handleSocketMessage = useCallback((data: unknown) => {
-    // Type Guard: Check if data is an object, not null, and has an 'id' property
     if (typeof data === 'object' && data !== null && 'id' in data) {
       const incomingArticle = data as Article;
       setNotification(incomingArticle);
-
-      // Manually update the cache without refetching from server (Instant)
       queryClient.setQueryData(['articles'], (oldData: Article[] | undefined) => {
         const prev = oldData || [];
         const exists = prev.find(a => a.id === incomingArticle.id);
-        let newList;
-        if (exists) {
-          newList = prev.map(a => a.id === incomingArticle.id ? incomingArticle : a);
-        } else {
-          newList = [incomingArticle, ...prev];
-        }
+        const newList = exists 
+          ? prev.map(a => a.id === incomingArticle.id ? incomingArticle : a)
+          : [incomingArticle, ...prev];
         return sortNewestFirst(newList);
       });
-
-      // Update detail view if open
-      setSelectedArticle(current => {
-        if (current && current.id === incomingArticle.id) return incomingArticle;
-        return current;
-      });
+      setSelectedArticle(current => current && current.id === incomingArticle.id ? incomingArticle : current);
     } else {
-      // If we get a generic signal (or data format we don't recognize), mark cache as dirty.
-      // React Query will re-fetch automatically in the background.
       queryClient.invalidateQueries({ queryKey: ['articles'] });
     }
   }, [queryClient]);
 
   const isSocketConnected = useSocket(handleSocketMessage);
 
-  // 3. Background Health Check (UI Only)
   useEffect(() => {
     const interval = setInterval(async () => {
       const isAlive = await checkApiHealth();
@@ -83,6 +66,12 @@ function App() {
     if (!category) return articles;
     return articles.filter(a => a.category === category);
   }, [articles, category]);
+
+  // --- OPTIMIZATION: Stable Handler ---
+  // If we don't do this, a new function is created every render, breaking memoization
+  const handleCardClick = useCallback((article: Article) => {
+    setSelectedArticle(article);
+  }, []);
 
   return (
     <div className="container">
@@ -141,7 +130,7 @@ function App() {
                 <ArticleCard
                   key={art.id}
                   article={art}
-                  onClick={(article) => setSelectedArticle(article)}
+                  onClick={handleCardClick} // Use the stable function here
                 />
               ))}
             </div>

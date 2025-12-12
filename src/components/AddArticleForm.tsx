@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, memo } from 'react'; // Import memo
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { createArticle } from '../services/api';
 
@@ -6,10 +6,10 @@ interface Props {
     isConnected: boolean;
 }
 
-export default function AddArticleForm({ isConnected }: Props) {
+function AddArticleForm({ isConnected }: Props) {
+    // ... all existing logic ...
     const [isOpen, setIsOpen] = useState(false);
     const queryClient = useQueryClient();
-    
     const [formData, setFormData] = useState({
         title: '', author: '', content: '', category: 'Tech'
     });
@@ -107,3 +107,5 @@ export default function AddArticleForm({ isConnected }: Props) {
         </div>
     );
 }
+
+export default memo(AddArticleForm);

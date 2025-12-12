@@ -1,3 +1,4 @@
+import { memo } from 'react'; // Import memo
 import { Article } from '../types';
 
 interface Props {
@@ -5,7 +6,8 @@ interface Props {
     onClick: (article: Article) => void;
 }
 
-export default function ArticleCard({ article, onClick }: Props) {
+function ArticleCard({ article, onClick }: Props) {
+    // ... logic remains the same ...
     const { title, author, category, createdAt, content } = article;
 
     const dateString = new Intl.DateTimeFormat('en-GB', {
@@ -32,3 +34,5 @@ export default function ArticleCard({ article, onClick }: Props) {
         </div>
     );
 }
+
+export default memo(ArticleCard);

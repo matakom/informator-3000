@@ -1,9 +1,11 @@
+import { memo } from 'react'; // Import memo
+
 interface Props {
   currentCategory: string;
   onSelectCategory: (cat: string) => void;
 }
 
-export default function CategoryFilter({ currentCategory, onSelectCategory }: Props) {
+function CategoryFilter({ currentCategory, onSelectCategory }: Props) {
   const categories = ['Politika', 'Sport', 'Tech'];
 
   return (
@@ -26,3 +28,5 @@ export default function CategoryFilter({ currentCategory, onSelectCategory }: Pr
     </div>
   );
 }
+
+export default memo(CategoryFilter);
