@@ -1,4 +1,4 @@
-import { useState, memo } from 'react'; // Import memo
+import { useState, memo } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { createArticle } from '../services/api';
 
@@ -7,31 +7,55 @@ interface Props {
 }
 
 function AddArticleForm({ isConnected }: Props) {
-    // ... all existing logic ...
-    const [isOpen, setIsOpen] = useState(false);
     const queryClient = useQueryClient();
+    
+    // UI state
+    const [isOpen, setIsOpen] = useState(false);
+    
+    // Form state - resetting this to default when the modal closes or succeeds
     const [formData, setFormData] = useState({
-        title: '', author: '', content: '', category: 'Tech'
+        title: '', 
+        author: '', 
+        content: '', 
+        category: 'Tech'
     });
+
+    // -- Server Interaction --
 
     const mutation = useMutation({
         mutationFn: createArticle,
         onSuccess: (isSuccess) => {
             if (isSuccess) {
+                // Clear the cache to show the new item immediately
                 queryClient.invalidateQueries({ queryKey: ['articles'] });
                 setIsOpen(false);
+                // Reset form so next time it opens, it's clean
                 setFormData({ title: '', author: '', content: '', category: 'Tech' });
             } else {
+                // Basic error handling for now
                 alert("Failed to create");
             }
         }
     });
+
+    // -- Handlers --
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         mutation.mutate(formData);
     };
 
+    // -- Styles --
+    
+    const gridStyle: React.CSSProperties = { 
+        display: 'grid', 
+        gridTemplateColumns: '1fr 1fr', 
+        gap: '1rem' 
+    };
+
+    // -- Render --
+
+    // If modal isn't open, just show the trigger button
     if (!isOpen) {
         return (
             <button
@@ -47,6 +71,7 @@ function AddArticleForm({ isConnected }: Props) {
         <div className="modal-overlay">
             <div className="modal-content">
                 <h2>Publish Article</h2>
+                
                 <form onSubmit={handleSubmit}>
                     <label>Headline</label>
                     <input
@@ -57,7 +82,7 @@ function AddArticleForm({ isConnected }: Props) {
                         placeholder="Enter a catchy title..."
                     />
 
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                    <div style={gridStyle}>
                         <div>
                             <label>Author</label>
                             <input
@@ -108,4 +133,13 @@ function AddArticleForm({ isConnected }: Props) {
     );
 }
 
-export default memo(AddArticleForm);
+// ------------------------------------------------------------------
+// Memoization Logic
+// ------------------------------------------------------------------
+
+function arePropsEqual(prev: Props, next: Props) {
+    // Only re-render if the connection status changes
+    return prev.isConnected === next.isConnected;
+}
+
+export default memo(AddArticleForm, arePropsEqual);
