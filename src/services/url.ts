@@ -1,3 +1,3 @@
-const URL = "https://80fdaf34bf67.ngrok-free.app/";
+const URL = "http://localhost:8080";
 
 export default URL;
